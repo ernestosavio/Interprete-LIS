@@ -9,6 +9,7 @@ data Exp a where
   -- Expresiones enteras
   Const  :: Int -> Exp Int
   Var    :: Variable -> Exp Int
+  VarInc :: Variable -> Exp Int
   UMinus :: Exp Int -> Exp Int
   Plus   :: Exp Int -> Exp Int -> Exp Int
   Minus  :: Exp Int -> Exp Int -> Exp Int
@@ -41,5 +42,15 @@ data Comm
 
 pattern IfThen :: Exp Bool -> Comm -> Comm
 pattern IfThen b c = IfThenElse b c Skip
+
+comm2case :: Comm -> [(Exp Bool,Comm)]
+comm2case Skip = []
+comm2case (IfThenElse b c1 c2) = (b,c1):(comm2case c2)
+
+pattern Case xs <- comm2case 
+  where
+    Case :: [(Exp Bool, Comm)] -> Comm
+    Case     [] = Skip
+    Case (x:xs) = IfThenElse b c (Case xs)
 
 data Error = DivByZero | UndefVar deriving (Eq, Show)
