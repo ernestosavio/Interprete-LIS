@@ -1,3 +1,4 @@
+{-# LANGUAGE ViewPatterns #-}
 module AST where
 
 -- Identificadores de Variable
@@ -47,10 +48,10 @@ comm2case :: Comm -> [(Exp Bool,Comm)]
 comm2case Skip = []
 comm2case (IfThenElse b c1 c2) = (b,c1):(comm2case c2)
 
-pattern Case xs <- comm2case 
+pattern Case xs <- ((\c -> comm2case c) -> xs)
   where
-    Case :: [(Exp Bool, Comm)] -> Comm
+    --Case :: [(Exp Bool, Comm)] -> Comm
+    Case ((b, c) : xs) = IfThenElse b c (Case xs)
     Case     [] = Skip
-    Case (x:xs) = IfThenElse b c (Case xs)
 
 data Error = DivByZero | UndefVar deriving (Eq, Show)
