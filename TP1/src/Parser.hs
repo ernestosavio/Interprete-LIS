@@ -101,9 +101,41 @@ intAtom = try nat <|> try (varExp) <|> (parens lis intExp)
 --- Parser de expresiones booleanas
 ------------------------------------
 
-boolexp :: Parser (Exp Bool)
-boolexp = undefined
+boolExp :: Parser (Exp Bool)
+boolExp = try (boolTerm `chainl1` boolExpOp) 
+         <|>
+         boolTerm
+  where
+  boolExpOp :: Parser (Exp Bool -> Exp Bool -> Exp Bool)
+  boolExpOp = do { reservedOp lis "||"; return Or }
 
+boolTerm :: Parser (Exp Bool)
+boolTerm = try (boolUnary `chainl1` boolTermOp) 
+         <|>
+         boolUnary
+  where
+  boolTermOp :: Parser (Exp Bool -> Exp Bool -> Exp Bool)
+  boolTermOp = do { reservedOp lis "&&"; return And }
+
+boolUnary :: Parser (Exp Bool)
+boolUnary = try (do { reservedOp lis "!"; u <- boolUnary; return (Not u) }) <|> boolAtom
+
+boolAtom :: Parser (Exp Bool)
+boolAtom = try boolean <|> (parens lis boolExp) <|> try (boolComp)
+  where
+  boolean :: Parser (Exp Bool)
+  boolean = try (do { reserved lis "true"; return BTrue})
+            <|>
+            (do { reserved lis "false"; return BFalse})
+
+boolComp :: Parser (Exp Bool)
+boolComp = do { x <- intExp;
+                choice [try (do {reservedOp lis "=="; y <- intExp; return (Eq x y)}),
+                        try (do {reservedOp lis "!="; y <- intExp; return (NEq x y)}),
+                        try (do {reservedOp lis "<"; y <- intExp; return (Gt x y)}),
+                        try (do {reservedOp lis ">"; y <- intExp; return (Lt x y)})]
+              }
+  
 -----------------------------------
 --- Parser de comandos
 -----------------------------------
