@@ -44,41 +44,41 @@ lis = makeTokenParser
 -----------------------------------
 --- Parser de expresiones enteras
 -----------------------------------
-intexp :: Parser (Exp Int)
-intexp = try (term `chainl1` plusExp) 
-         <|> 
-         try (term `chainl1` minusExp) 
+intExp :: Parser (Exp Int)
+intExp = try (intTerm `chainl1` intExpOp) 
          <|>
-         term
+         intTerm
   where
   plusExp :: Parser (Exp Int -> Exp Int -> Exp Int)
-  plusExp = do { reservedOp lis "+";  return Plus }
+  plusExp = do { reservedOp lis "+"; return Plus }
 
   minusExp :: Parser (Exp Int -> Exp Int -> Exp Int)
-  minusExp = do { reservedOp lis "-";  return (Minus) }
+  minusExp = do { reservedOp lis "-"; return Minus }
+
+  intExpOp :: Parser (Exp Int -> Exp Int -> Exp Int)
+  intExpOp = try minusExp <|> plusExp 
 
 
-term :: Parser (Exp Int)
-term = try (unary `chainl1` timesExp) 
-       <|> 
-       try (unary `chainl1` divExp) 
-       <|>
-       unary  
+intTerm :: Parser (Exp Int)
+intTerm = try (intUnary `chainl1` termExpOp) 
+          <|>
+          intUnary  
   where
   timesExp :: Parser (Exp Int -> Exp Int -> Exp Int)
-  timesExp = do { reservedOp lis "*";  return Times }
+  timesExp = do { reservedOp lis "*"; return Times }
 
   divExp :: Parser (Exp Int -> Exp Int -> Exp Int)
-  divExp = do { reservedOp lis "/";  return Div }
+  divExp = do { reservedOp lis "/"; return Div }
 
-unary :: Parser (Exp Int)
-unary = try (do { reservedOp lis "-"; a <- atom; return (UMinus a) }) <|> atom
-  where
-  uMinusExp :: Parser (Exp Int -> Exp Int)
-  uMinusExp = do { reservedOp lis "-";  return UMinus }
+  termExpOp :: Parser (Exp Int -> Exp Int -> Exp Int)
+  termExpOp = try timesExp <|> divExp 
 
-atom :: Parser (Exp Int)
-atom = try nat <|> try (varExp) <|> (parens lis intexp)
+intUnary :: Parser (Exp Int)
+intUnary = try (do { reservedOp lis "-"; u <- intUnary; return (UMinus u) }) <|> intAtom
+
+
+intAtom :: Parser (Exp Int)
+intAtom = try nat <|> try (varExp) <|> (parens lis intExp)
   where
   nat :: Parser (Exp Int)
   nat = do {
