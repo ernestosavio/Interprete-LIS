@@ -45,9 +45,8 @@ lis = makeTokenParser
 --- Parser de expresiones enteras
 -----------------------------------
 intExp :: Parser (Exp Int)
-intExp = try (intTerm `chainl1` intExpOp) 
-         <|>
-         intTerm
+intExp = intTerm `chainl1` intExpOp
+        
   where
   plusExp :: Parser (Exp Int -> Exp Int -> Exp Int)
   plusExp = do { reservedOp lis "+"; return Plus }
@@ -60,9 +59,8 @@ intExp = try (intTerm `chainl1` intExpOp)
 
 
 intTerm :: Parser (Exp Int)
-intTerm = try (intUnary `chainl1` termExpOp) 
-          <|>
-          intUnary  
+intTerm = intUnary `chainl1` termExpOp
+  
   where
   timesExp :: Parser (Exp Int -> Exp Int -> Exp Int)
   timesExp = do { reservedOp lis "*"; return Times }
@@ -102,17 +100,13 @@ intAtom = try nat <|> try (varExp) <|> (parens lis intExp)
 ------------------------------------
 
 boolExp :: Parser (Exp Bool)
-boolExp = try (boolTerm `chainl1` boolExpOp) 
-         <|>
-         boolTerm
+boolExp = boolTerm `chainl1` boolExpOp
   where
   boolExpOp :: Parser (Exp Bool -> Exp Bool -> Exp Bool)
   boolExpOp = do { reservedOp lis "||"; return Or }
 
 boolTerm :: Parser (Exp Bool)
-boolTerm = try (boolUnary `chainl1` boolTermOp) 
-         <|>
-         boolUnary
+boolTerm = boolUnary `chainl1` boolTermOp
   where
   boolTermOp :: Parser (Exp Bool -> Exp Bool -> Exp Bool)
   boolTermOp = do { reservedOp lis "&&"; return And }
@@ -132,8 +126,8 @@ boolComp :: Parser (Exp Bool)
 boolComp = do { x <- intExp;
                 choice [try (do {reservedOp lis "=="; y <- intExp; return (Eq x y)}),
                         try (do {reservedOp lis "!="; y <- intExp; return (NEq x y)}),
-                        try (do {reservedOp lis "<"; y <- intExp; return (Gt x y)}),
-                        try (do {reservedOp lis ">"; y <- intExp; return (Lt x y)})]
+                        try (do {reservedOp lis "<"; y <- intExp; return (Lt x y)}),
+                        try (do {reservedOp lis ">"; y <- intExp; return (Gt x y)})]
               }
   
 -----------------------------------
@@ -141,15 +135,14 @@ boolComp = do { x <- intExp;
 -----------------------------------
 
 comm :: Parser Comm
-comm = try (commAtom `chainl1` commOp) 
-         <|>
-         commAtom
+comm = commAtom `chainl1` commOp
+
   where
   commOp :: Parser (Comm -> Comm -> Comm)
   commOp = do { reservedOp lis ";"; return Seq }
 
 commAtom :: Parser Comm
-commAtom = try commAss <|> try commRepet <|> try commIf <|> try commCase <|> commSkip
+commAtom = try commAss <|> try commRepeat <|> try commIf <|> try commCase <|> commSkip
   where
   commAss :: Parser Comm
   commAss = do { v <- identifier lis; 
@@ -158,13 +151,14 @@ commAtom = try commAss <|> try commRepet <|> try commIf <|> try commCase <|> com
                  return (Let v e)
               }
 
-  commRepet :: Parser Comm
-  commRepet = do { reserved lis "repeat"; 
-                   symbol lis "{"; 
-                   c <- comm; 
-                   symbol lis "}"; 
-                   b <- boolExp; 
-                   return (RepeatUntil c b) 
+  commRepeat :: Parser Comm
+  commRepeat = do { reserved lis "repeat"; 
+                    symbol lis "{"; 
+                    c <- comm; 
+                    symbol lis "}"; 
+                    reserved lis "until"; 
+                    b <- boolExp; 
+                    return (RepeatUntil c b) 
                 }
   
   commSkip :: Parser Comm
@@ -191,13 +185,13 @@ commAtom = try commAss <|> try commRepet <|> try commIf <|> try commCase <|> com
 
   caseComm :: Parser [(Exp Bool,Comm)]
   caseComm = do { b <- boolExp;
-                  symbol lis ":";
-                  symbol lis "{";
-                  c <- comm;
-                  symbol lis "}";
-                  xc <- caseComm;
-                  return ((b,c):xc)
-                }
+                   symbol lis ":";
+                   symbol lis "{";
+                   c <- comm;
+                   symbol lis "}";
+                   xc <- caseComm;
+                   return ((b,c):xc)
+                } <|> return []
 
   commCase :: Parser Comm
   commCase = do { reserved lis "case";
