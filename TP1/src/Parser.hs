@@ -22,7 +22,7 @@ lis = makeTokenParser
     , commentEnd      = "*/"
     , commentLine     = "//"
     , opLetter        = char '='
-    , reservedNames   = ["true", "false", "skip", "if", "else", "repeat", "until"]
+    , reservedNames   = ["true", "false", "skip", "if", "else", "repeat", "until", "case"]
     , reservedOpNames = [ "+"
                         , "-"
                         , "*"
@@ -141,8 +141,71 @@ boolComp = do { x <- intExp;
 -----------------------------------
 
 comm :: Parser Comm
-comm = undefined
+comm = try (commAtom `chainl1` commOp) 
+         <|>
+         commAtom
+  where
+  commOp :: Parser (Comm -> Comm -> Comm)
+  commOp = do { reservedOp lis ";"; return Seq }
 
+commAtom :: Parser Comm
+commAtom = try commAss <|> try commRepet <|> try commIf <|> try commCase <|> commSkip
+  where
+  commAss :: Parser Comm
+  commAss = do { v <- identifier lis; 
+                 reservedOp lis "="; 
+                 e <- intExp; 
+                 return (Let v e)
+              }
+
+  commRepet :: Parser Comm
+  commRepet = do { reserved lis "repeat"; 
+                   symbol lis "{"; 
+                   c <- comm; 
+                   symbol lis "}"; 
+                   b <- boolExp; 
+                   return (RepeatUntil c b) 
+                }
+  
+  commSkip :: Parser Comm
+  commSkip = do { reserved lis "skip"; 
+                  return Skip
+              }
+
+  commElse :: (Exp Bool) -> Comm -> Parser Comm
+  commElse b c1 = do { reserved lis "else"; 
+                       symbol lis "{"; 
+                       c2 <- comm; 
+                       symbol lis "}"; 
+                       return (IfThenElse b c1 c2)
+                    }
+
+  commIf :: Parser Comm
+  commIf = do { reserved lis "if";
+                b <- boolExp;
+                symbol lis "{";
+                c <- comm;
+                symbol lis "}";
+                try (commElse b c) <|> return (IfThen b c)
+              }
+
+  caseComm :: Parser [(Exp Bool,Comm)]
+  caseComm = do { b <- boolExp;
+                  symbol lis ":";
+                  symbol lis "{";
+                  c <- comm;
+                  symbol lis "}";
+                  xc <- caseComm;
+                  return ((b,c):xc)
+                }
+
+  commCase :: Parser Comm
+  commCase = do { reserved lis "case";
+                  symbol lis "{";
+                  xc <- caseComm;
+                  symbol lis "}";
+                  return (Case xc)
+                }
 
 ------------------------------------
 -- Función de parseo
