@@ -1,5 +1,0 @@
-x = 5;
-case {
-    x > 10: { result = 1; resultt = 3 }
-    x > 0: { result = 2 }
-}

@@ -47,7 +47,7 @@ stepCommStar c    s = do
 -- Evalúa un paso de un comando en un estado dado
 -- Completar la definición
 stepComm :: Comm -> State -> Either Error (Pair Comm State)
-stepComm Skip s = Right (Skip :!: s) 
+stepComm Skip s = Right (Skip :!: s)
 stepComm (Let var e) s = case (evalExp e s) of
                           Right (n :!: s') -> let 
                                                 s'' = M.insert var n s'

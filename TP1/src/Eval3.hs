@@ -26,7 +26,7 @@ lookfor var (s,_) = case M.lookup var s of
 -- Cambia el valor de una variable en un estado
 -- Completar la definición
 update :: Variable -> Int -> State -> State
-update var val (s,t) = addTrace ("Let" ++ (var ++ (show val))) (M.update f var s, t)
+update var val (s,t) = addTrace (" Let " ++ (var ++ (" " ++ (show val)))) (M.update f var s, t)
   where
   f :: Int -> Maybe Int
   f _ = (Just val)
@@ -55,7 +55,7 @@ stepComm Skip s = Right (Skip :!: s)
 stepComm (Let var e) s = case (evalExp e s) of
                           Right (n :!: (s',t)) -> let 
                                                     s'' = M.insert var n s'
-                                                    s''' = addTrace ("Let" ++ (var ++ (show n))) (s'',t)
+                                                    s''' = addTrace (" Let " ++ (var ++ (" " ++ (show n)))) (s'',t)
                                                   in 
                                                       Right (Skip :!: s''')
                           Left err         -> Left err
@@ -77,4 +77,85 @@ stepComm r@(RepeatUntil c p) s = let
 -- Evalúa una expresión
 -- Completar la definición
 evalExp :: Exp a -> State -> Either Error (Pair a State)
-evalExp = undefined
+evalExp (Const n) s = Right (n :!: s)
+evalExp (Var var) s = case (lookfor var s) of
+                          Right n -> Right (n :!: s)
+                          Left x  -> Left x
+evalExp (VarInc var) s = case (lookfor var s) of
+                          Right n -> let s' = update var (n + 1) s in Right ((n + 1) :!: s') 
+                          Left x  -> Left x
+                            
+evalExp (UMinus e) s = case (evalExp e s) of 
+                          Right (n :!: s') -> Right ((-n) :!: s')
+                          Left err         -> Left err
+
+                          
+evalExp (Plus e0 e1) s = case (evalExp e0 s) of 
+                          Right (n0 :!: s0) -> case (evalExp e1 s0) of 
+                                                  Right (n1 :!: s1) -> Right ((n0 + n1) :!: s1)
+                                                  Left err          -> Left err
+                          Left err          -> Left err
+
+evalExp (Minus e0 e1) s = case (evalExp e0 s) of 
+                          Right (n0 :!: s0) -> case (evalExp e1 s0) of 
+                                                  Right (n1 :!: s1) -> Right ((n0 - n1) :!: s1)
+                                                  Left err1         -> Left err1
+                          Left err0         -> Left err0
+
+evalExp (Times e0 e1) s = case (evalExp e0 s) of 
+                          Right (n0 :!: s0) -> case (evalExp e1 s0) of 
+                                                  Right (n1 :!: s1) -> Right ((n0 * n1) :!: s1)
+                                                  Left err1         -> Left err1
+                          Left err0         -> Left err0
+                          
+evalExp (Div e0 e1) s = case (evalExp e0 s) of 
+                          Right (n0 :!: s0) -> case (evalExp e1 s0) of 
+                                                  Right (0 :!: _)  -> Left DivByZero
+                                                  Right (n1 :!: s1) -> Right ((n0 `div` n1) :!: s1)
+                                                  Left err1         -> Left err1
+                          Left err0         -> Left err0
+
+evalExp BTrue s  = Right (True :!: s)
+evalExp BFalse s = Right (False :!: s)
+evalExp (And p0 p1) s = case (evalExp p0 s) of 
+                          Right (b0 :!: s0) -> case (evalExp p1 s0) of 
+                                                  Right (b1 :!: s1) -> Right ((b0 && b1) :!: s1)
+                                                  Left err1         -> Left err1
+                          Left err0         -> Left err0
+                            
+evalExp (Or p0 p1) s = case (evalExp p0 s) of 
+                          Right (b0 :!: s0) -> case (evalExp p1 s0) of 
+                                                  Right (b1 :!: s1) -> Right ((b0 || b1) :!: s1)
+                                                  Left err1         -> Left err1
+                          Left err0         -> Left err0
+
+evalExp (Not p) s = case (evalExp p s) of
+                      Right (b :!: s') -> Right ((not b) :!: s')
+                      Left err -> Left err
+
+evalExp (Lt e0 e1) s = case (evalExp e0 s) of 
+                          Right (n0 :!: s0) -> case (evalExp e1 s0) of 
+                                                  Right (n1 :!: s1) -> Right ((n0 < n1) :!: s1)
+                                                  Left err1         -> Left err1
+                          Left err0         -> Left err0
+                            
+evalExp (Gt e0 e1) s = case (evalExp e0 s) of 
+                          Right (n0 :!: s0) -> case (evalExp e1 s0) of 
+                                                  Right (n1 :!: s1) -> Right ((n0 > n1) :!: s1)
+                                                  Left err1         -> Left err1
+                          Left err0         -> Left err0
+
+evalExp (Eq e0 e1) s = case (evalExp e0 s) of 
+                          Right (n0 :!: s0) -> case (evalExp e1 s0) of 
+                                                  Right (n1 :!: s1) -> Right ((n0 == n1) :!: s1)
+                                                  Left err1         -> Left err1
+                          Left err0         -> Left err0
+
+evalExp (NEq e0 e1) s = case (evalExp e0 s) of 
+                          Right (n0 :!: s0) -> case (evalExp e1 s0) of 
+                                                  Right (n1 :!: s1) -> Right ((not (n0 == n1)) :!: s1)
+                                                  Left err1         -> Left err1
+                          Left err0         -> Left err0
+                            
+
+

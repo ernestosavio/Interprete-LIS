@@ -15,6 +15,7 @@ pVar = text
 pExp :: Exp a -> Doc
 pExp (Const  i ) = int i
 pExp (Var    x ) = pVar x
+pExp (VarInc x ) = pVar x <+> text "++"
 pExp (UMinus n ) = text "-" <+> pExp n
 pExp (Plus  a b) = pExp a <+> text "+" <+> pExp b
 pExp (Times a b) = pExpMaybeParen a <+> text "*" <+> pExpMaybeParen b
@@ -56,6 +57,7 @@ pComm (IfThenElse b c1 c2) =
     $$  rbrace
 pComm (RepeatUntil c b) =
   text "repeat" <+> lbrace $$ nest tabW (pComm c) $$ rbrace <+> text "until" <+> parens (pExp b)
+
   
 renderComm :: Comm -> String
 renderComm = render . pComm
