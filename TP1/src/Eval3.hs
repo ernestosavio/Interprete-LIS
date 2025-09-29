@@ -14,22 +14,27 @@ type State = (M.Map Variable Int, String)
 -- Estado vacío
 -- Completar la definición
 initState :: State
-initState = undefined
+initState = (M.empty, "")
 
 -- Busca el valor de una variable en un estado
 -- Completar la definición
 lookfor :: Variable -> State -> Either Error Int
-lookfor = undefined
+lookfor var (s,_) = case M.lookup var s of
+                  Nothing   -> Left UndefVar
+                  (Just v)  -> Right v
 
 -- Cambia el valor de una variable en un estado
 -- Completar la definición
 update :: Variable -> Int -> State -> State
-update = undefined
+update var val (s,t) = addTrace ("Let" ++ (var ++ (show val))) (M.update f var s, t)
+  where
+  f :: Int -> Maybe Int
+  f _ = (Just val)
 
 -- Agrega una traza dada al estado
 -- Completar la definición
 addTrace :: String -> State -> State
-addTrace = undefined
+addTrace trace (s, t) = (s, t ++ trace) 
 
 -- Evalúa un programa en el estado vacío
 eval :: Comm -> Either Error State
@@ -46,7 +51,28 @@ stepCommStar c    s = do
 -- Evalúa un paso de un comando en un estado dado
 -- Completar la definición
 stepComm :: Comm -> State -> Either Error (Pair Comm State)
-stepComm = undefined
+stepComm Skip s = Right (Skip :!: s) 
+stepComm (Let var e) s = case (evalExp e s) of
+                          Right (n :!: (s',t)) -> let 
+                                                    s'' = M.insert var n s'
+                                                    s''' = addTrace ("Let" ++ (var ++ (show n))) (s'',t)
+                                                  in 
+                                                      Right (Skip :!: s''')
+                          Left err         -> Left err
+
+stepComm (Seq Skip c) s = Right (c :!: s)
+stepComm (Seq c0 c1) s = case (stepComm c0 s) of
+                            Right (c0' :!: s') -> Right ((Seq c0' c1) :!: s')
+                            x                  -> x
+                            
+stepComm (IfThenElse p c0 c1) s = case (evalExp p s) of
+                                      Right (b :!: s') -> if b then (stepComm c0 s') else (stepComm c1 s')
+                                      Left err         -> Left err
+
+stepComm r@(RepeatUntil c p) s = let 
+                                     c' = (IfThenElse p Skip r)
+                                 in 
+                                    stepComm (Seq c c') s
 
 -- Evalúa una expresión
 -- Completar la definición
