@@ -15,7 +15,7 @@ pVar = text
 pExp :: Exp a -> Doc
 pExp (Const  i ) = int i
 pExp (Var    x ) = pVar x
-pExp (VarInc x ) = pVar x <+> text "++"
+pExp (VarInc x ) = pVar x <> text "++"
 pExp (UMinus n ) = text "-" <+> pExp n
 pExp (Plus  a b) = pExp a <+> text "+" <+> pExp b
 pExp (Times a b) = pExpMaybeParen a <+> text "*" <+> pExpMaybeParen b
@@ -43,6 +43,8 @@ pComm :: Comm -> Doc
 pComm Skip        = text "skip"
 pComm (Let x  e ) = pVar x <+> text "=" <+> pExp e
 pComm (Seq c1 c2) = pComm c1 <> semi $$ pComm c2
+pComm (Case xs) =
+  text "case" <+> lbrace $$ nest tabW (pCaseComm xs) $$ rbrace
 pComm (IfThen b c) =
   text "if" <+> parens (pExp b) <+> lbrace $$ nest tabW (pComm c) $$ rbrace
 pComm (IfThenElse b c1 c2) =
@@ -59,6 +61,10 @@ pComm (RepeatUntil c b) =
   text "repeat" <+> lbrace $$ nest tabW (pComm c) $$ rbrace <+> text "until" <+> parens (pExp b)
 
   
+pCaseComm :: [(Exp Bool, Comm)] -> Doc
+pCaseComm [] = empty
+pCaseComm ((b,c):xs) = (pExp b) <+> text ":" <+> lbrace <+> (pComm c) <+> rbrace $$ (pCaseComm xs)
+
 renderComm :: Comm -> String
 renderComm = render . pComm
 
