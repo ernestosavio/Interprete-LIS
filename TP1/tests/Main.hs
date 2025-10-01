@@ -3,7 +3,7 @@ module Main where
 import Test.HUnit
 import ParserTests (parserTests)
 import Eval1Tests (eval1Tests)
-import Eval2Tests (eval2Tests)
+
 
 
 main :: IO Counts
@@ -12,4 +12,5 @@ main = do
     parserTests
     putStrLn "-------------------- Eval 1 tests --------------------"
     eval1Tests
+
     
